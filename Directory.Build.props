@@ -17,6 +17,17 @@
   </PropertyGroup>
 
   <PropertyGroup>
+    <!-- *.Shared projects are pure contract libs — they must land in shared/ (one unified ALC for
+         cross-plugin interface identity), NOT modules/ where ModSharp would try to load them as a
+         plugin (BadImageFormatException: no IModSharpModule). -->
+    <IsSharedProject>$([System.String]::new('$(MSBuildProjectName)').EndsWith('.Shared'))</IsSharedProject>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(IsSharedProject)' == 'true'">
+    <OutputPath>$(MSBuildThisFileDirectory).build\shared\$(MSBuildProjectName)\</OutputPath>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(IsSharedProject)' != 'true'">
     <OutputPath>$(MSBuildThisFileDirectory).build\modules\$(MSBuildProjectName)\</OutputPath>
   </PropertyGroup>
 
