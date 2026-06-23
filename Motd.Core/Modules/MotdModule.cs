@@ -1,11 +1,13 @@
 using System;
 using System.Text;
+using Google.Protobuf;
 using Microsoft.Extensions.Logging;
 using Motd.Core.Configuration;
 using Motd.Shared;
 using Sharp.Shared.Enums;
 using Sharp.Shared.Listeners;
 using Sharp.Shared.Objects;
+using Sharp.Shared.Types;
 using Sharp.Shared.Units;
 
 namespace Motd.Core.Modules;
@@ -176,13 +178,10 @@ internal sealed class MotdModule : IModule, IClientListener, IGameListener, IMot
     private void ShowToSlotOnGameThread(byte slot, MotdContent content)
     {
         var client = _bridge.ClientManager.GetGameClient(new PlayerSlot(slot));
-        if (client is null || !client.IsValid || !client.IsInGame || client.IsFakeClient || client.IsHltv)
-            return;
-
-        // No per-recipient stringtable entry exists. Set the global slot to this player's URL so
-        // the next panel-open (engine auto-open on join) renders it. For true per-player content,
-        // encode identity into the URL (e.g. ?steamid=...).
-        WriteMotdToTable(content);
+        if (client is not null)
+            // Per-client: craft a svc_UpdateStringTable that overrides only this client's
+            // InfoPanel/motd view, so true per-player content works (the global slot is untouched).
+            PushToClientOnGameThread(client, content);
     }
 
     /// <summary>
@@ -225,4 +224,65 @@ internal sealed class MotdModule : IModule, IClientListener, IGameListener, IMot
 
         _logger.LogInformation("[Motd] Set {Table}/{Key} = {Url}", TableName, StringKeyName, url);
     }
+
+    /// <summary>
+    /// Push a per-client MOTD by sending a crafted <c>svc_UpdateStringTable</c> that overrides this
+    /// one client's view of InfoPanel/motd — unlike the global <see cref="WriteMotdToTable"/> write.
+    /// The entry must already exist + be replicated (the per-map <see cref="WriteMotdToTable"/> in
+    /// OnServerActivate does that), so the client has the matching index. Must run on the game thread.
+    /// </summary>
+    private void PushToClientOnGameThread(IGameClient client, MotdContent content)
+    {
+        if (client is null || !client.IsValid || !client.IsInGame || client.IsFakeClient || client.IsHltv)
+            return;
+
+        if (content.Kind == MotdKind.Html)
+        {
+            _logger.LogWarning("[Motd] HTML MOTD is not rendered by CS2; pass a URL instead. Skipping push.");
+            return;
+        }
+
+        var url = content.Value;
+        if (string.IsNullOrWhiteSpace(url)
+            || (!url.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+                && !url.StartsWith("https://", StringComparison.OrdinalIgnoreCase)))
+        {
+            _logger.LogWarning("[Motd] Push value is not an absolute http(s) URL: '{Url}'. Skipping.", url);
+            return;
+        }
+
+        var table = _bridge.ModSharp.FindStringTable(TableName);
+        if (table is null)
+        {
+            _logger.LogWarning("[Motd] String table '{Table}' not found (no active map?). Skipping push.", TableName);
+            return;
+        }
+
+        var data = Encoding.UTF8.GetBytes(url + "\0");
+
+        var idx = table.FindStringIndex(StringKeyName);
+        if (idx < 0)
+        {
+            // Entry not on the client yet — create it server-side (replicates globally) so the
+            // index exists, then the per-client override below applies on top.
+            idx = table.AddString(true, StringKeyName, data);
+            if (idx < 0)
+            {
+                _logger.LogWarning("[Motd] Could not add '{Key}' to '{Table}'. Skipping push.", StringKeyName, TableName);
+                return;
+            }
+        }
+
+        var msg = new CSVCMsg_UpdateStringTable
+        {
+            TableId           = table.GetId(),
+            NumChangedEntries = 1,
+            StringData        = ByteString.CopyFrom(StringTableDelta.EncodeSingleUserData(idx, data)),
+        };
+
+        _bridge.ModSharp.SendNetMessage(new RecipientFilter(client), msg);
+        _logger.LogInformation("[Motd] Pushed {Table}/{Key} to slot {Slot} = {Url}",
+            TableName, StringKeyName, client.Slot.AsPrimitive(), url);
+    }
+
 }

@@ -41,8 +41,10 @@ All API methods are thread-safe (marshalled onto the game thread) and validate `
 
 - **URL MOTD: supported.** Inline **HTML: not supported by CS2** (only URLs navigate) — host HTML
   yourself and pass its URL.
-- **One global stringtable slot** — no per-recipient MOTD. Per-player content must encode identity
-  in a shared URL (`?steamid=...`).
+- **Per-player supported.** `ShowMotd(slot, …)` and auto-show-on-join craft a per-client
+  `svc_UpdateStringTable` (see `StringTableDelta.cs`) that overrides only that client's
+  InfoPanel/motd view — the global slot is untouched. `ShowMotdAll`/`SetDefaultMotd` still write the
+  global slot.
 - Players with `cl_disablehtmlmotd 1` see nothing (client-side, unavoidable).
 - The table resets per map; the plugin re-writes it on `OnServerActivate`.
 
