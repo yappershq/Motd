@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Motd.Shared/Motd.Shared.csproj" />
+  <Project Path="Motd.Core/Motd.Core.csproj" />
+</Solution>

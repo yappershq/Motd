@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>Motd.Shared</AssemblyName>
+    <RootNamespace>Motd.Shared</RootNamespace>
+  </PropertyGroup>
+
+  <!-- This is a pure-contract assembly: no ModSharp / native types in the public API.
+       Slots are passed as plain ints; consumers never need Sharp.Shared to reference it. -->
+
+</Project>

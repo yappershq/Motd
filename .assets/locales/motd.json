@@ -1,0 +1,5 @@
+{
+  "Motd_Disabled": {
+    "en-US": "{{red}}MOTD is currently disabled on this server.{{default}}"
+  }
+}
