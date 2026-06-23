@@ -74,7 +74,10 @@ internal sealed class MotdModule : IModule, IClientListener, IGameListener, IMot
 
     public void Shutdown()
     {
-        // Listeners are torn down by the host on plugin unload.
+        // Explicitly remove our listeners so a hot-reload (or plugin unload) cannot keep firing
+        // events into this now-disposed instance / dead ServiceProvider.
+        _bridge.ClientManager.RemoveClientListener(this);
+        _bridge.ModSharp.RemoveGameListener(this);
     }
 
     // ===== Default MOTD resolution =====
