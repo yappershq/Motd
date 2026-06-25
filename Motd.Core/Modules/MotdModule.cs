@@ -143,12 +143,12 @@ internal sealed class MotdModule : IModule, IClientListener, IGameListener, IMot
 
     // ===== IMotdShared (public API) — safe from any thread =====
 
-    public void ShowMotd(int slot, MotdContent content)
+    public void ShowMotd(IGameClient client, MotdContent content)
     {
-        if (slot is < 0 or > 63)
+        if (client is null)
             return;
 
-        _bridge.ModSharp.InvokeFrameAction(() => ShowToSlotOnGameThread((byte) slot, content));
+        _bridge.ModSharp.InvokeFrameAction(() => PushToClientOnGameThread(client, content));
     }
 
     public void ShowMotdAll(MotdContent content)

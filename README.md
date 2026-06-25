@@ -52,13 +52,13 @@ Other plugins consume `IMotdShared` (resolve in `OnAllModulesLoaded` — Motd pu
 var motd = sharpModuleManager
     .GetOptionalSharpModuleInterface<IMotdShared>(IMotdShared.Identity)?.Instance;
 
-// Show a page to one player (slot 0..63), to everyone, or change the default:
-motd?.ShowMotd(slot, MotdContent.ForUrl("https://example.com/rules", "Rules"));
+// Show a page to one player, to everyone, or change the default:
+motd?.ShowMotd(client, MotdContent.ForUrl("https://example.com/rules", "Rules"));
 motd?.ShowMotdAll(MotdContent.ForUrl("https://example.com/event"));
 motd?.SetDefaultMotd(MotdContent.ForUrl("https://example.com/welcome")); // null = revert to config
 ```
 
-All methods take plain `int` slots and are safe to call from any thread.
+All methods are safe to call from any thread.
 
 ## 📦 Build
 

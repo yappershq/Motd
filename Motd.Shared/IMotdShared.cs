@@ -1,3 +1,5 @@
+using Sharp.Shared.Objects;
+
 namespace Motd.Shared;
 
 /// <summary>
@@ -9,9 +11,8 @@ namespace Motd.Shared;
 /// </code>
 /// Resolve it in <c>OnAllModulesLoaded</c> (not Init/PostInit) — Motd publishes in PostInit.
 ///
-/// All methods take plain <c>int</c> player slots (0..63) and are safe to call from any thread:
-/// the implementation marshals slot→client resolution and the actual engine write onto the
-/// game thread, and validates <c>IsInGame</c> before showing anything.
+/// All methods are safe to call from any thread: the implementation marshals the actual engine
+/// write onto the game thread and validates <c>IsInGame</c> before showing anything.
 ///
 /// Example consumers: a <c>!discord</c> or <c>!rules</c> chat command would call
 /// <see cref="ShowMotd"/> with <see cref="MotdContent.ForUrl"/> pointing at the relevant page.
@@ -22,12 +23,12 @@ public interface IMotdShared
     const string Identity = nameof(IMotdShared);
 
     /// <summary>
-    /// Show the given MOTD to a single player right now. No-op if the slot is invalid or the
-    /// player is not fully in-game. Safe to call off the game thread.
+    /// Show the given MOTD to a single player right now. No-op if the client is not fully
+    /// in-game. Safe to call off the game thread.
     /// </summary>
-    /// <param name="slot">Player slot, 0..63.</param>
+    /// <param name="client">The target player.</param>
     /// <param name="content">The MOTD payload to display.</param>
-    void ShowMotd(int slot, MotdContent content);
+    void ShowMotd(IGameClient client, MotdContent content);
 
     /// <summary>
     /// Show the given MOTD to every in-game player right now. Safe to call off the game thread.
