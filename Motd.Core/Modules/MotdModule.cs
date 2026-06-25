@@ -92,9 +92,7 @@ internal sealed class MotdModule : IModule, IClientListener, IGameListener, IMot
                 return rt;
         }
 
-        var title = _config.DefaultTitle;
-        return new MotdContent(_config.DefaultKind, _config.DefaultValue,
-            string.IsNullOrWhiteSpace(title) ? null : title);
+        return new MotdContent(_config.DefaultValue);
     }
 
     // ===== IGameListener: repopulate per map =====
@@ -190,14 +188,7 @@ internal sealed class MotdModule : IModule, IClientListener, IGameListener, IMot
     /// </summary>
     private void WriteMotdToTable(MotdContent content)
     {
-        if (content.Kind == MotdKind.Html)
-        {
-            _logger.LogWarning(
-                "[Motd] HTML MOTD is not rendered by CS2; host the HTML and pass a URL instead. Skipping.");
-            return;
-        }
-
-        var url = content.Value;
+        var url = content.Url;
         if (string.IsNullOrWhiteSpace(url)
             || (!url.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
                 && !url.StartsWith("https://", StringComparison.OrdinalIgnoreCase)))
@@ -236,13 +227,7 @@ internal sealed class MotdModule : IModule, IClientListener, IGameListener, IMot
         if (client is null || !client.IsValid || !client.IsInGame || client.IsFakeClient || client.IsHltv)
             return;
 
-        if (content.Kind == MotdKind.Html)
-        {
-            _logger.LogWarning("[Motd] HTML MOTD is not rendered by CS2; pass a URL instead. Skipping push.");
-            return;
-        }
-
-        var url = content.Value;
+        var url = content.Url;
         if (string.IsNullOrWhiteSpace(url)
             || (!url.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
                 && !url.StartsWith("https://", StringComparison.OrdinalIgnoreCase)))

@@ -34,9 +34,7 @@ ConVars are generated into `<sharp>/configs/motd.cfg` on first run:
 | ConVar | Default | Meaning |
 |--------|---------|---------|
 | `motd_enabled` | `1` | Master switch (`0` = off, `1` = on). |
-| `motd_kind` | `url` | Default MOTD kind: `url` (only mode CS2 renders) or `html` (not rendered by CS2 — host it and use a URL). |
-| `motd_value` | `https://example.com/motd` | Default MOTD value. For `url` kind, an absolute `http(s)://` URL. |
-| `motd_title` | _(empty)_ | Optional title (advisory; CS2 uses the page's own `<title>`). |
+| `motd_value` | `https://example.com/motd` | Default MOTD URL — an absolute `http(s)://` address (CS2 only navigates URLs). |
 | `motd_show_trigger` | `1` | When to auto-show the default: `0` = never, `1` = on connect, `2` = on first spawn. |
 | `motd_show_delay` | `1.0` | Seconds to delay the auto-show after the trigger fires (`0` = immediate). |
 
