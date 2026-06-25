@@ -50,10 +50,10 @@ Other plugins consume `IMotdShared` (resolve in `OnAllModulesLoaded` — Motd pu
 var motd = sharpModuleManager
     .GetOptionalSharpModuleInterface<IMotdShared>(IMotdShared.Identity)?.Instance;
 
-// Show a page to one player, to everyone, or change the default:
-motd?.ShowMotd(client, MotdContent.ForUrl("https://example.com/rules", "Rules"));
-motd?.ShowMotdAll(MotdContent.ForUrl("https://example.com/event"));
-motd?.SetDefaultMotd(MotdContent.ForUrl("https://example.com/welcome")); // null = revert to config
+// Show a page to one player, to everyone, or change the default (just an http(s) URL):
+motd?.ShowMotd(client, "https://example.com/rules");
+motd?.ShowMotdAll("https://example.com/event");
+motd?.SetDefaultMotd("https://example.com/welcome"); // null = revert to config
 ```
 
 All methods are safe to call from any thread.

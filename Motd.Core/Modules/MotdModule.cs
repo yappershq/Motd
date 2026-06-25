@@ -43,8 +43,8 @@ internal sealed class MotdModule : IModule, IClientListener, IGameListener, IMot
 
     private readonly object _lock = new();
 
-    // Runtime override of the default MOTD (null = use config). Guarded by _lock.
-    private MotdContent? _runtimeDefault;
+    // Runtime override of the default MOTD URL (null = use config). Guarded by _lock.
+    private string? _runtimeDefault;
 
     int IClientListener.ListenerVersion  => IClientListener.ApiVersion;
     int IClientListener.ListenerPriority => 0;
@@ -84,7 +84,7 @@ internal sealed class MotdModule : IModule, IClientListener, IGameListener, IMot
 
     // ===== Default MOTD resolution =====
 
-    private MotdContent EffectiveDefault()
+    private string EffectiveDefault()
     {
         lock (_lock)
         {
@@ -92,7 +92,7 @@ internal sealed class MotdModule : IModule, IClientListener, IGameListener, IMot
                 return rt;
         }
 
-        return new MotdContent(_config.DefaultValue);
+        return _config.DefaultValue;
     }
 
     // ===== IGameListener: repopulate per map =====
@@ -125,45 +125,45 @@ internal sealed class MotdModule : IModule, IClientListener, IGameListener, IMot
 
     private void ScheduleShowDefault(PlayerSlot slot)
     {
-        var content = EffectiveDefault();
-        var delay   = _config.ShowDelay;
+        var url   = EffectiveDefault();
+        var delay = _config.ShowDelay;
 
         if (delay <= 0f)
         {
-            ShowToSlotOnGameThread(slot.AsPrimitive(), content);
+            ShowToSlotOnGameThread(slot.AsPrimitive(), url);
             return;
         }
 
         var captured = slot.AsPrimitive();
-        _bridge.ModSharp.PushTimer(() => ShowToSlotOnGameThread(captured, content),
+        _bridge.ModSharp.PushTimer(() => ShowToSlotOnGameThread(captured, url),
             delay, GameTimerFlags.StopOnMapEnd);
     }
 
     // ===== IMotdShared (public API) — safe from any thread =====
 
-    public void ShowMotd(IGameClient client, MotdContent content)
+    public void ShowMotd(IGameClient client, string url)
     {
         if (client is null)
             return;
 
-        _bridge.ModSharp.InvokeFrameAction(() => PushToClientOnGameThread(client, content));
+        _bridge.ModSharp.InvokeFrameAction(() => PushToClientOnGameThread(client, url));
     }
 
-    public void ShowMotdAll(MotdContent content)
+    public void ShowMotdAll(string url)
     {
         _bridge.ModSharp.InvokeFrameAction(() =>
         {
             // Single global stringtable slot: write once; engine shows it to whoever opens next.
             // We also (re)write so any subsequent panel-open picks up this content.
-            WriteMotdToTable(content);
+            WriteMotdToTable(url);
         });
     }
 
-    public void SetDefaultMotd(MotdContent? content)
+    public void SetDefaultMotd(string? url)
     {
         lock (_lock)
         {
-            _runtimeDefault = content;
+            _runtimeDefault = url;
         }
 
         // Apply immediately if a server is active; otherwise OnServerActivate will pick it up.
@@ -173,22 +173,20 @@ internal sealed class MotdModule : IModule, IClientListener, IGameListener, IMot
 
     // ===== Game-thread implementations =====
 
-    private void ShowToSlotOnGameThread(byte slot, MotdContent content)
+    private void ShowToSlotOnGameThread(byte slot, string url)
     {
         var client = _bridge.ClientManager.GetGameClient(new PlayerSlot(slot));
         if (client is not null)
             // Per-client: craft a svc_UpdateStringTable that overrides only this client's
             // InfoPanel/motd view, so true per-player content works (the global slot is untouched).
-            PushToClientOnGameThread(client, content);
+            PushToClientOnGameThread(client, url);
     }
 
     /// <summary>
     /// Write the MOTD URL into InfoPanel/motd. Must run on the game thread.
-    /// HTML kind is unsupported by CS2 — logged and skipped.
     /// </summary>
-    private void WriteMotdToTable(MotdContent content)
+    private void WriteMotdToTable(string url)
     {
-        var url = content.Url;
         if (string.IsNullOrWhiteSpace(url)
             || (!url.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
                 && !url.StartsWith("https://", StringComparison.OrdinalIgnoreCase)))
@@ -222,12 +220,11 @@ internal sealed class MotdModule : IModule, IClientListener, IGameListener, IMot
     /// The entry must already exist + be replicated (the per-map <see cref="WriteMotdToTable"/> in
     /// OnServerActivate does that), so the client has the matching index. Must run on the game thread.
     /// </summary>
-    private void PushToClientOnGameThread(IGameClient client, MotdContent content)
+    private void PushToClientOnGameThread(IGameClient client, string url)
     {
         if (client is null || !client.IsValid || !client.IsInGame || client.IsFakeClient || client.IsHltv)
             return;
 
-        var url = content.Url;
         if (string.IsNullOrWhiteSpace(url)
             || (!url.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
                 && !url.StartsWith("https://", StringComparison.OrdinalIgnoreCase)))

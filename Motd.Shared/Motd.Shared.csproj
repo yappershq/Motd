@@ -6,7 +6,7 @@
 
     <!-- NuGet package metadata (pack via `dotnet pack -c Release`; not on every build) -->
     <PackageId>YappersHQ.Motd.Shared</PackageId>
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
     <Authors>yappershq</Authors>
     <Company>yappershq</Company>
     <Description>Public contract (IMotdShared) for showing per-client MOTDs / server-website URLs from external ModSharp/CS2 plugins via ShowMotd(IGameClient, MotdContent). Compile-time only — the runtime DLL is provided by the Motd plugin via /game/sharp/shared/.</Description>
